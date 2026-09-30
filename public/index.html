@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickDrop — Fast file transfer</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --accent: #5b8cff;
+    --accent2: #7c5bff;
+    --text: #e8eaf0;
+    --muted: #8b90a0;
+    --border: #2a2e3a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 20% 20%, #1a1d29, var(--bg) 60%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    padding: 20px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  h1 {
+    font-size: 28px;
+    margin: 0 0 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  p.sub { color: var(--muted); margin: 0 0 32px; font-size: 15px; }
+  button {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  button:active { transform: scale(0.98); }
+  #createBtn {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white;
+    margin-bottom: 20px;
+  }
+  #createBtn:disabled { opacity: 0.6; cursor: default; }
+  .divider {
+    display: flex;
+    align-items: center;
+    color: var(--muted);
+    font-size: 13px;
+    margin: 20px 0;
+  }
+  .divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .divider span { padding: 0 12px; }
+  .join-row {
+    display: flex;
+    gap: 8px;
+  }
+  #codeInput {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #0d0f14;
+    color: var(--text);
+    font-size: 16px;
+    text-transform: lowercase;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+  #codeInput:focus { outline: none; border-color: var(--accent); }
+  #joinBtn {
+    width: auto;
+    padding: 14px 20px;
+    background: #232734;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .hint { margin-top: 24px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>QuickDrop</h1>
+    <p class="sub">Drag, drop, download — on any device.</p>
+    <button id="createBtn">+ New transfer room</button>
+    <div class="divider"><span>or join existing</span></div>
+    <div class="join-row">
+      <input id="codeInput" placeholder="room code" maxlength="6" autocomplete="off" autocapitalize="off">
+      <button id="joinBtn">Join</button>
+    </div>
+    <p class="hint">Create a room on one device, open the same link on another to send files between them instantly.</p>
+  </div>
+
+<script>
+  const createBtn = document.getElementById('createBtn');
+  const joinBtn = document.getElementById('joinBtn');
+  const codeInput = document.getElementById('codeInput');
+
+  createBtn.addEventListener('click', async () => {
+    createBtn.disabled = true;
+    createBtn.textContent = 'Creating...';
+    try {
+      const res = await fetch('/api/room', { method: 'POST' });
+      const data = await res.json();
+      window.location.href = '/room/' + data.code;
+    } catch (e) {
+      createBtn.disabled = false;
+      createBtn.textContent = '+ New transfer room';
+      alert('Could not create room. Try again.');
+    }
+  });
+
+  function goToRoom() {
+    const code = codeInput.value.trim().toLowerCase();
+    if (code.length === 6) window.location.href = '/room/' + code;
+    else alert('Enter a valid 6-character room code');
+  }
+  joinBtn.addEventListener('click', goToRoom);
+  codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') goToRoom(); });
+</script>
+</body>
+</html>

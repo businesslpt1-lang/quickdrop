@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickDrop — Room</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --accent: #5b8cff;
+    --accent2: #7c5bff;
+    --text: #e8eaf0;
+    --muted: #8b90a0;
+    --border: #2a2e3a;
+    --good: #3ddc97;
+    --bad: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 20% 20%, #1a1d29, var(--bg) 60%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+  .wrap { max-width: 640px; width: 100%; }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .brand { font-weight: 700; font-size: 18px; }
+  .brand a { color: var(--text); text-decoration: none; }
+  .room-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 14px;
+  }
+  .room-code { font-size: 18px; font-weight: 700; letter-spacing: 3px; color: var(--accent); }
+  .copy-btn {
+    background: #232734;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .copy-btn:active { transform: scale(0.96); }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted);
+  }
+  .status-dot.connected { background: var(--good); }
+
+  #dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 20px;
+    padding: 48px 24px;
+    text-align: center;
+    background: var(--panel);
+    transition: border-color 0.15s, background 0.15s;
+    cursor: pointer;
+    margin-bottom: 24px;
+  }
+  #dropzone.dragover {
+    border-color: var(--accent);
+    background: #1c2030;
+  }
+  #dropzone .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.8; }
+  #dropzone p { margin: 4px 0; color: var(--muted); }
+  #dropzone p.main { color: var(--text); font-size: 16px; font-weight: 600; }
+  #fileInput { display: none; }
+
+  .upload-progress {
+    margin-bottom: 20px;
+  }
+  .upload-item {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+  }
+  .upload-item .name { font-size: 14px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .upload-item .name span:last-child { color: var(--muted); }
+  .bar-bg {
+    height: 6px;
+    background: #0d0f14;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    width: 0%;
+    transition: width 0.1s;
+  }
+
+  .files-section h2 {
+    font-size: 15px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 12px;
+  }
+  .file-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .file-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .file-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .file-actions a, .file-actions button {
+    text-decoration: none;
+    background: #232734;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .file-actions .download-btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; }
+  .file-actions .delete-btn { color: var(--bad); }
+  .empty-state { color: var(--muted); text-align: center; padding: 30px 0; font-size: 14px; }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><a href="/">QuickDrop</a></div>
+    <div class="room-badge">
+      <span class="status-dot" id="statusDot"></span>
+      <span class="room-code" id="roomCode"></span>
+      <button class="copy-btn" id="copyBtn">Copy link</button>
+    </div>
+  </header>
+
+  <div id="dropzone">
+    <div class="icon">📥</div>
+    <p class="main">Drop files here or click to browse</p>
+    <p>Up to 2GB per file · shared instantly with this room</p>
+    <input type="file" id="fileInput" multiple>
+  </div>
+
+  <div class="upload-progress" id="uploadProgress"></div>
+
+  <div class="files-section">
+    <h2>Files in this room</h2>
+    <div id="fileList"><div class="empty-state">No files yet — drop one above to get started.</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const code = window.location.pathname.split('/').pop();
+  document.getElementById('roomCode').textContent = code.toUpperCase();
+
+  const socket = io();
+  const statusDot = document.getElementById('statusDot');
+  socket.on('connect', () => { statusDot.classList.add('connected'); socket.emit('join', code); });
+  socket.on('disconnect', () => statusDot.classList.remove('connected'));
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(window.location.href).then(() => showToast('Link copied!'));
+  });
+
+  // ---- File list rendering ----
+  const fileListEl = document.getElementById('fileList');
+  let files = [];
+
+  function iconFor(mime) {
+    if (!mime) return '📄';
+    if (mime.startsWith('image/')) return '🖼️';
+    if (mime.startsWith('video/')) return '🎬';
+    if (mime.startsWith('audio/')) return '🎵';
+    if (mime.includes('zip') || mime.includes('compressed')) return '🗜️';
+    if (mime.includes('pdf')) return '📕';
+    return '📄';
+  }
+
+  function renderFiles() {
+    if (files.length === 0) {
+      fileListEl.innerHTML = '<div class="empty-state">No files yet — drop one above to get started.</div>';
+      return;
+    }
+    fileListEl.innerHTML = files.map(f => `
+      <div class="file-card" data-id="${f.id}">
+        <div class="file-icon">${iconFor(f.mime)}</div>
+        <div class="file-info">
+          <div class="file-name">${escapeHtml(f.name)}</div>
+          <div class="file-meta">${f.sizeHuman}</div>
+        </div>
+        <div class="file-actions">
+          <a class="download-btn" href="/api/room/${code}/download/${f.id}">Download</a>
+          <button class="delete-btn" onclick="deleteFile('${f.id}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  async function deleteFile(id) {
+    await fetch(`/api/room/${code}/files/${id}`, { method: 'DELETE' });
+    files = files.filter(f => f.id !== id);
+    renderFiles();
+  }
+  window.deleteFile = deleteFile;
+
+  async function loadFiles() {
+    const res = await fetch(`/api/room/${code}/files`);
+    const data = await res.json();
+    files = data.files || [];
+    renderFiles();
+  }
+  loadFiles();
+
+  socket.on('files-added', (added) => {
+    for (const f of added) if (!files.find(x => x.id === f.id)) files.push(f);
+    renderFiles();
+    showToast(added.length === 1 ? `${added[0].name} arrived` : `${added.length} files arrived`);
+  });
+  socket.on('file-removed', ({ id }) => {
+    files = files.filter(f => f.id !== id);
+    renderFiles();
+  });
+  socket.on('room-expired', () => {
+    showToast('This room has expired');
+  });
+
+  // ---- Upload handling ----
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const uploadProgress = document.getElementById('uploadProgress');
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => uploadFiles(Array.from(fileInput.files)));
+
+  ['dragenter', 'dragover'].forEach(evt =>
+    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('dragover'); })
+  );
+  ['dragleave', 'drop'].forEach(evt =>
+    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('dragover'); })
+  );
+  dropzone.addEventListener('drop', e => {
+    const dropped = Array.from(e.dataTransfer.files);
+    if (dropped.length) uploadFiles(dropped);
+  });
+
+  function uploadFiles(fileArr) {
+    if (!fileArr.length) return;
+    const form = new FormData();
+    fileArr.forEach(f => form.append('files', f));
+
+    const itemId = 'up_' + Date.now();
+    const totalSize = fileArr.reduce((s, f) => s + f.size, 0);
+    const label = fileArr.length === 1 ? fileArr[0].name : `${fileArr.length} files`;
+    uploadProgress.insertAdjacentHTML('beforeend', `
+      <div class="upload-item" id="${itemId}">
+        <div class="name"><span>Uploading ${escapeHtml(label)}...</span><span class="pct">0%</span></div>
+        <div class="bar-bg"><div class="bar-fill"></div></div>
+      </div>
+    `);
+    const itemEl = document.getElementById(itemId);
+    const fill = itemEl.querySelector('.bar-fill');
+    const pct = itemEl.querySelector('.pct');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/api/room/${code}/upload`);
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) {
+        const p = Math.round((e.loaded / e.total) * 100);
+        fill.style.width = p + '%';
+        pct.textContent = p + '%';
+      }
+    });
+    xhr.addEventListener('load', () => {
+      itemEl.remove();
+      if (xhr.status >= 200 && xhr.status < 300) {
+        showToast('Upload complete');
+      } else {
+        let msg = 'Upload failed';
+        try { msg = JSON.parse(xhr.responseText).error || msg; } catch (e) {}
+        showToast(msg);
+      }
+    });
+    xhr.addEventListener('error', () => { itemEl.remove(); showToast('Upload failed'); });
+    xhr.send(form);
+    fileInput.value = '';
+  }
+</script>
+</body>
+</html>
