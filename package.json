@@ -9,9 +9,10 @@
     "dev": "node server.js"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "express": "^4.19.2",
     "multer": "^2.0.1",
-    "socket.io": "^4.7.5",
-    "nanoid": "^3.3.7"
+    "nanoid": "^3.3.7",
+    "socket.io": "^4.7.5"
   }
 }

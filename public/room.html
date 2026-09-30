@@ -108,13 +108,34 @@
     transition: width 0.1s;
   }
 
+  .files-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
   .files-section h2 {
     font-size: 15px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin: 0 0 12px;
+    margin: 0;
   }
+  .bulk-actions { display: flex; gap: 8px; }
+  .bulk-btn {
+    text-decoration: none;
+    background: #232734;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .bulk-btn.danger { color: var(--bad); }
   .file-card {
     display: flex;
     align-items: center;
@@ -189,7 +210,13 @@
   <div class="upload-progress" id="uploadProgress"></div>
 
   <div class="files-section">
-    <h2>Files in this room</h2>
+    <div class="files-header">
+      <h2>Files in this room</h2>
+      <div class="bulk-actions" id="bulkActions" hidden>
+        <a class="bulk-btn" id="downloadAllBtn" href="#">Download all (.zip)</a>
+        <button class="bulk-btn danger" id="deleteAllBtn">Delete all</button>
+      </div>
+    </div>
     <div id="fileList"><div class="empty-state">No files yet — drop one above to get started.</div></div>
   </div>
 </div>
@@ -231,7 +258,13 @@
     return '📄';
   }
 
+  const bulkActions = document.getElementById('bulkActions');
+  const downloadAllBtn = document.getElementById('downloadAllBtn');
+
   function renderFiles() {
+    bulkActions.hidden = files.length === 0;
+    downloadAllBtn.href = `/api/room/${code}/download-all`;
+
     if (files.length === 0) {
       fileListEl.innerHTML = '<div class="empty-state">No files yet — drop one above to get started.</div>';
       return;
@@ -262,6 +295,15 @@
   }
   window.deleteFile = deleteFile;
 
+  document.getElementById('deleteAllBtn').addEventListener('click', async () => {
+    if (files.length === 0) return;
+    if (!confirm(`Delete all ${files.length} file(s) in this room? This can't be undone.`)) return;
+    await fetch(`/api/room/${code}/files`, { method: 'DELETE' });
+    files = [];
+    renderFiles();
+    showToast('All files deleted');
+  });
+
   async function loadFiles() {
     const res = await fetch(`/api/room/${code}/files`);
     const data = await res.json();
@@ -278,6 +320,11 @@
   socket.on('file-removed', ({ id }) => {
     files = files.filter(f => f.id !== id);
     renderFiles();
+  });
+  socket.on('files-cleared', () => {
+    files = [];
+    renderFiles();
+    showToast('All files were deleted');
   });
   socket.on('room-expired', () => {
     showToast('This room has expired');

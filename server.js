@@ -6,6 +6,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { Server } = require('socket.io');
 const { customAlphabet } = require('nanoid');
+const archiver = require('archiver');
 
 const app = express();
 const server = http.createServer(app);
@@ -142,6 +143,33 @@ app.get('/api/room/:code/download/:fileId', (req, res) => {
   res.download(file.diskPath, file.name);
 });
 
+// Download all files in a room as a single zip
+app.get('/api/room/:code/download-all', (req, res) => {
+  const { code } = req.params;
+  const room = rooms.get(code);
+  if (!room || room.files.size === 0) return res.status(404).send('No files to download');
+
+  res.attachment(`quickdrop-${code}.zip`);
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  archive.on('error', (err) => res.status(500).end());
+  archive.pipe(res);
+
+  const usedNames = new Set();
+  for (const file of room.files.values()) {
+    if (!fs.existsSync(file.diskPath)) continue;
+    let name = file.name;
+    let i = 1;
+    while (usedNames.has(name)) {
+      const ext = path.extname(file.name);
+      const base = path.basename(file.name, ext);
+      name = `${base} (${i++})${ext}`;
+    }
+    usedNames.add(name);
+    archive.file(file.diskPath, { name });
+  }
+  archive.finalize();
+});
+
 // Delete a file (either device can remove it)
 app.delete('/api/room/:code/files/:fileId', (req, res) => {
   const { code, fileId } = req.params;
@@ -153,6 +181,18 @@ app.delete('/api/room/:code/files/:fileId', (req, res) => {
   room.files.delete(fileId);
   io.to(code).emit('file-removed', { id: fileId });
   res.json({ ok: true });
+});
+
+// Delete all files in a room
+app.delete('/api/room/:code/files', (req, res) => {
+  const { code } = req.params;
+  const room = rooms.get(code);
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+  const ids = Array.from(room.files.keys());
+  for (const file of room.files.values()) fs.unlink(file.diskPath, () => {});
+  room.files.clear();
+  io.to(code).emit('files-cleared', { ids });
+  res.json({ ok: true, removed: ids.length });
 });
 
 // Room page (client reads the code from the URL)
