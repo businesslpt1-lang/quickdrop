@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QuickDrop — Room</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
   :root {
     --bg: #0f1115;
@@ -37,7 +38,8 @@
     gap: 12px;
   }
   .brand { font-weight: 700; font-size: 18px; }
-  .brand a { color: var(--text); text-decoration: none; }
+  .brand a { color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+  .brand img { width: 24px; height: 24px; border-radius: 6px; }
   .room-badge {
     display: flex;
     align-items: center;
@@ -192,7 +194,7 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="brand"><a href="/">QuickDrop</a></div>
+    <div class="brand"><a href="/"><img src="/favicon.svg" alt=""> QuickDrop</a></div>
     <div class="room-badge">
       <span class="status-dot" id="statusDot"></span>
       <span class="room-code" id="roomCode"></span>
